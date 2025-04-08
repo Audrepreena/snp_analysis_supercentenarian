@@ -1,0 +1,78 @@
+Finding SNPs from the genome of supercentenarians
+#Clean the workspace
+rm(list=ls())
+#Import the libraries
+library(vcfR)
+#Read the files
+file <- read.vcfR("sample_id.vcf")
+dataframe <- as.data.frame(file@fix)
+#Write all mutations to a csv file
+all_mutations <- dataframe [which(dataframe$CHROM == "chr1"),]
+write.csv(all_mutations, "sample_id chr1 all mutations.csv", row.names=FALSE)
+#Filter the dataframe for PASS variants
+filterpass <- dataframe [which(dataframe$FILTER == "PASS"),]
+#Filter the dataframe fr chromsome
+Filtered_mutation <- filterpass[which(filterpass$CHROM == "chr1"),]
+pos <- as.numeric(filtered_mutation$POS)
+#Write filtered mutations to a csv file
+write.csv(filtered mutation, "sample_id chr1 filtered.csv", row.names=FALSE)
+Sorting SNPs among centenarians and supercentenarians.
+#Clean the workspace
+rm(list=ls())
+#Import the libraries
+library(openxlsx)
+library(readxl)
+# Create an Excel file
+wb <- createWorkbook()
+# List of chromosomes
+chromosomes <- c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY", "chrM")
+# Function to process a chromosome
+processChromosome <- function(chr) {
+excel <- read_excel("input.xlsx", sheet = chr)
+data <- data.frame(excel)
+unique_values <- unique(unlist(data))
+unique_values <- unique(na.omit(unique_values))
+sorted_positions <- sort(unique_values)
+presence <- sapply(data, function(column) ifelse(sorted_positions %in% column, 1, 0))
+data_with_positions <- data.frame(positions = sorted_positions, presence)
+data_with_positions$sum_of_values <- rowSums(data_with_positions[-1], na.rm = TRUE)
+return(data_with_positions)
+}
+# Loop through chromosomes and add them to the Excel file
+for (chr in chromosomes) {
+data_with_positions <- processChromosome(chr)
+addWorksheet(wb, sheetName = chr)
+writeData(wb, sheet = chr, data_with_positions)
+}
+# Save the Excel file
+saveWorkbook(wb, "output.xlsx")
+Finding mutations unique and common among supercentenarians.
+rm(list=ls())
+library(readxl)
+library(openxlsx)
+# Create an Excel file
+wb <- createWorkbook()
+addWorksheet(wb, "sheetname")
+# List of chromosomes
+chromosomes <- c("chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY", "chrM")
+# Loop through the chromosomes and process each one
+start_col <- 1
+for (chr in chromosomes) {
+excel <- read_excel("input.xlsx", sheet = chr)
+data <- data.frame(excel)
+unique_values <- unique(na.omit(unlist(data)))
+sorted_positions <- sort(unique_values)
+positions <- data.frame(positions = sorted_positions)
+presence <- sapply(data, function(column) ifelse(sorted_positions %in% column, 1, 0))
+data_with_positions <- data.frame(positions = sorted_positions, presence)
+data_with_positions$sum_of_values <- rowSums(data_with_positions[-1], na.rm = TRUE)
+# Filter positions with a sum (1 for unique, 3 for common centenarians, 18 for supercentenarians and 21 for both)
+positions_with_sum_1 <- data_with_positions$positions[data_with_positions$sum_of_values == 1]
+# Create a data frame for the chromosome
+chromosome_data <- data.frame(chr = positions_with_sum_1)
+# Write the data to the Excel workbook
+writeData(wb, sheet = "sheetname", x = chromosome_data, startCol = start_col)
+start_col <- start_col + 1
+}
+# Save the Excel file
+saveWorkbook(wb, "output.xlsx", overwrite = TRUE)
